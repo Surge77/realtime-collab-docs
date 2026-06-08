@@ -9,7 +9,7 @@ Live status of the build. Updated at the end of every phase (and every meaningfu
 | 0 | Repo + docs init | ✅ Done |
 | 1 | Foundation — CodeMirror editor | ✅ Done |
 | 2 | Backend skeleton + hardened auth | ✅ Done |
-| 3 | Frontend auth + document list | ⬜ Not started |
+| 3 | Frontend auth + document list | ✅ Done |
 | 4 | Yjs + WebSocket (single user) | ⬜ Not started |
 | 5 | Crash-safe persistence | ⬜ Not started |
 | 6 | Multi-user sync + presence + WS auth | ⬜ Not started |
@@ -57,6 +57,22 @@ Done:
 - [x] **17 tests passing** (unit: validation + jwt; integration via supertest: auth flows, document CRUD + authz, healthz). 0 npm vulnerabilities.
 
 Checkpoint: ✅ register → login (cookie set) → create/list/rename/delete docs; wrong-user blocked; healthz ok.
+
+> Not yet: Yjs/WebSocket, persistence, presence, sharing.
+
+## Phase 3 — Frontend auth + document list ✅
+
+Goal: working login/register UI, session restore, protected routing, document list.
+
+Done:
+- [x] `axios` instance with `withCredentials` + request/response interceptors; refresh-once coordination extracted to testable `handle401`.
+- [x] `zustand` auth store (status state-machine: idle/loading/authenticated/unauthenticated); login/register/logout/initialize; access token in memory only.
+- [x] Login + Register pages (shared `AuthForm`, field + server error display); Home (doc list, create, delete); EditorPage (loads metadata, 403/404 states, renders local editor — Yjs in Phase 4); NotFound.
+- [x] `ProtectedRoute` + routing; `initialize()` restores session from refresh cookie on mount.
+- [x] **13 tests passing** (handle401 single/concurrent/failure, store transitions, ProtectedRoute states). Build green.
+- [x] Security: cleared axios SSRF (→1.17.0) + react-router highs (→6.30.4). One dev-only vite moderate remains (documented).
+
+Checkpoint: ✅ logic verified by tests + build. Full browser E2E (register→login→list) deferred to Phase 8 Playwright pass.
 
 > Not yet: Yjs/WebSocket, persistence, presence, sharing.
 

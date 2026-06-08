@@ -67,3 +67,146 @@ body {
   border-right: 1px solid var(--border) !important;
   color: var(--text-dim) !important;
 }
+
+/* ---- Buttons ---- */
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text);
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+}
+button:hover {
+  border-color: var(--accent);
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+a {
+  color: var(--accent);
+}
+
+/* ---- Auth pages ---- */
+.auth-page {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+.auth-form {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.75rem;
+}
+.auth-form h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.4rem;
+}
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.auth-field input {
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.auth-error {
+  color: #f87171;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ---- Home ---- */
+.home-header,
+.editor-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+}
+.home-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.home-main {
+  padding: 1.5rem;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.home-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.doc-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.doc-item {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+.doc-open {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+}
+.doc-title {
+  font-weight: 600;
+}
+.doc-meta {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+/* ---- Editor page ---- */
+.editor-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.editor-page-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.back-link {
+  text-decoration: none;
+}
+.route-loading,
+.route-error {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--text-dim);
+  text-align: center;
+  gap: 0.5rem;
+}
