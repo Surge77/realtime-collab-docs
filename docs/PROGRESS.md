@@ -10,7 +10,7 @@ Live status of the build. Updated at the end of every phase (and every meaningfu
 | 1 | Foundation — CodeMirror editor | ✅ Done |
 | 2 | Backend skeleton + hardened auth | ✅ Done |
 | 3 | Frontend auth + document list | ✅ Done |
-| 4 | Yjs + WebSocket (single user) | ⬜ Not started |
+| 4 | Yjs + WebSocket (single user) | ✅ Done |
 | 5 | Crash-safe persistence | ⬜ Not started |
 | 6 | Multi-user sync + presence + WS auth | ⬜ Not started |
 | 7 | Sharing & permissions | ⬜ Not started |
@@ -59,6 +59,20 @@ Done:
 Checkpoint: ✅ register → login (cookie set) → create/list/rename/delete docs; wrong-user blocked; healthz ok.
 
 > Not yet: Yjs/WebSocket, persistence, presence, sharing.
+
+## Phase 4 — Yjs + WebSocket (single user) ✅
+
+Goal: editor syncs through the server over WebSocket (no persistence yet, auth stubbed).
+
+Done:
+- [x] Server: `yjs` + `y-websocket` (`setupWSConnection` via `bin/utils`) + `ws`, attached to the HTTP server on `/yjs/*` upgrade. Origin validation + path check (`isAllowedUpgrade`); in-memory rooms (no persistence).
+- [x] Client: `useYjs` hook (Y.Doc + WebsocketProvider, exactly one per mount, full cleanup, `synced` flag for D9). `CollabEditor` binds CodeMirror via `yCollab` (remote cursors come from awareness — no separate CursorLayer). Shared `baseExtensions` extracted (DRY across local + collab editors). EditorPage renders CollabEditor.
+- [x] Connection-status indicator (green/amber/red dot).
+- [x] **Tests:** server 24 passing incl. **live two-client WS sync** (text propagates between two providers in the same room, 47ms) + upgrade gating; client 15 passing incl. `useYjs` single-provider + destroy-on-unmount. 0 vulnerabilities both packages.
+
+Checkpoint: ✅ two clients in the same room sync live (verified by integration test). Reload loses content (expected — persistence is Phase 5).
+
+> Not yet: persistence, presence/auth on WS, sharing.
 
 ## Phase 3 — Frontend auth + document list ✅
 

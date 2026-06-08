@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 
 import { createApp } from './app.js';
+import { setupYjsWebSocket } from './services/yjs-server.js';
 import { redis, closeRedis } from './services/redis-client.js';
 import { closePool } from './db/connection.js';
 import { logger } from './utils/logger.js';
@@ -14,6 +15,7 @@ async function start() {
 
   const app = createApp();
   const server = createServer(app);
+  setupYjsWebSocket(server);
 
   server.listen(PORT, () => {
     logger.info(`server listening on http://localhost:${PORT}`);

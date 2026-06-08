@@ -210,3 +210,36 @@ a {
   text-align: center;
   gap: 0.5rem;
 }
+
+/* ---- Collaborative editor ---- */
+.collab-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.conn-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1.25rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+}
+.conn-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+.conn-dot[data-status='connected'] {
+  background: #10b981;
+}
+.conn-dot[data-status='connecting'] {
+  background: #f59e0b;
+}
+.conn-dot[data-status='disconnected'] {
+  background: #ef4444;
+}

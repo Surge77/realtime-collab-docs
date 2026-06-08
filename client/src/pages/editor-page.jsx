@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { EditorCore } from '../components/editor/editor-core.jsx';
+import { CollabEditor } from '../components/editor/collab-editor.jsx';
 import { getDocument } from '../services/document-service.js';
 
 // Phase 3: loads metadata and renders the local editor. Phase 4 swaps the
@@ -39,7 +39,7 @@ export function EditorPage() {
         <span className="editor-title">{document.title}</span>
       </header>
       <main className="editor-page-main">
-        <EditorCore documentId={id} />
+        <CollabEditor documentId={id} />
       </main>
     </div>
   );

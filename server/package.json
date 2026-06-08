@@ -8,8 +8,8 @@
     "start": "node src/index.js",
     "smoke": "node --env-file=.env.local scripts/smoke.js",
     "migrate": "node --env-file=.env.local scripts/migrate.js",
-    "test": "node --test --env-file=.env.local",
-    "test:coverage": "node --test --experimental-test-coverage --env-file=.env.local"
+    "test": "node --test --test-force-exit --env-file=.env.local",
+    "test:coverage": "node --test --test-force-exit --experimental-test-coverage --env-file=.env.local"
   },
   "dependencies": {
     "@node-rs/argon2": "2.0.2",
@@ -24,6 +24,9 @@
     "pino": "9.5.0",
     "pino-http": "10.3.0",
     "rate-limit-redis": "4.2.0",
+    "ws": "8.21.0",
+    "y-websocket": "2.1.0",
+    "yjs": "13.6.20",
     "zod": "3.23.8"
   },
   "devDependencies": {
