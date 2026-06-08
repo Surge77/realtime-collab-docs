@@ -1,14 +1,63 @@
 import { createRequire } from 'node:module';
 
 import { WebSocketServer } from 'ws';
+import * as Y from 'yjs';
 
 import { logger } from '../utils/logger.js';
+import { getDocumentState, saveDocumentState } from './persistence.js';
 
 // y-websocket ships its server helpers as CommonJS; load them through require.
 const require = createRequire(import.meta.url);
-const { setupWSConnection } = require('y-websocket/bin/utils');
+const { setupWSConnection, setPersistence, docs } = require('y-websocket/bin/utils');
 
 const WS_PATH_PREFIX = '/yjs/';
+const PERSIST_DEBOUNCE_MS = Number(process.env.YJS_PERSIST_DEBOUNCE_MS ?? 2000);
+
+// Per-document debounce timers so a burst of edits coalesces into one write.
+const saveTimers = new Map();
+
+async function persistDoc(docName, ydoc) {
+  try {
+    await saveDocumentState(docName, Y.encodeStateAsUpdate(ydoc));
+  } catch (err) {
+    logger.error({ err, docName }, 'failed to persist yjs state');
+  }
+}
+
+function scheduleSave(docName, ydoc) {
+  clearTimeout(saveTimers.get(docName));
+  saveTimers.set(
+    docName,
+    setTimeout(() => {
+      saveTimers.delete(docName);
+      persistDoc(docName, ydoc);
+    }, PERSIST_DEBOUNCE_MS),
+  );
+}
+
+// D1/D2: y-websocket owns the single Y.Doc; bindState is awaited before the
+// socket binds, so persisted state is applied before any client can sync.
+setPersistence({
+  async bindState(docName, ydoc) {
+    const persisted = await getDocumentState(docName);
+    if (persisted) Y.applyUpdate(ydoc, persisted);
+    ydoc.on('update', () => scheduleSave(docName, ydoc));
+  },
+  async writeState(docName, ydoc) {
+    clearTimeout(saveTimers.get(docName));
+    saveTimers.delete(docName);
+    await persistDoc(docName, ydoc);
+  },
+});
+
+/** Flush every active room to the DB. Called during graceful shutdown (D8). */
+export async function flushAllRooms() {
+  for (const [docName, ydoc] of docs) {
+    clearTimeout(saveTimers.get(docName));
+    await persistDoc(docName, ydoc);
+  }
+  saveTimers.clear();
+}
 
 /** Extract the documentId from a /yjs/<documentId> URL. Returns null if absent. */
 export function extractDocName(url) {

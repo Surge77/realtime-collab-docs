@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 
 import { createApp } from './app.js';
-import { setupYjsWebSocket } from './services/yjs-server.js';
+import { setupYjsWebSocket, flushAllRooms } from './services/yjs-server.js';
 import { redis, closeRedis } from './services/redis-client.js';
 import { closePool } from './db/connection.js';
 import { logger } from './utils/logger.js';
@@ -28,6 +28,8 @@ async function start() {
     shuttingDown = true;
     logger.info({ signal }, 'shutting down');
     server.close(async () => {
+      // D8 ordering: flush Yjs rooms to the DB BEFORE closing the pool.
+      await flushAllRooms().catch((err) => logger.error({ err }, 'error flushing yjs rooms'));
       await closePool().catch((err) => logger.error({ err }, 'error closing pg pool'));
       await closeRedis().catch((err) => logger.error({ err }, 'error closing redis'));
       process.exit(0);

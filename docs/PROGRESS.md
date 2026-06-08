@@ -11,7 +11,7 @@ Live status of the build. Updated at the end of every phase (and every meaningfu
 | 2 | Backend skeleton + hardened auth | ✅ Done |
 | 3 | Frontend auth + document list | ✅ Done |
 | 4 | Yjs + WebSocket (single user) | ✅ Done |
-| 5 | Crash-safe persistence | ⬜ Not started |
+| 5 | Crash-safe persistence | ✅ Done |
 | 6 | Multi-user sync + presence + WS auth | ⬜ Not started |
 | 7 | Sharing & permissions | ⬜ Not started |
 | 8 | Polish & production readiness | ⬜ Not started |
@@ -73,6 +73,21 @@ Done:
 Checkpoint: ✅ two clients in the same room sync live (verified by integration test). Reload loses content (expected — persistence is Phase 5).
 
 > Not yet: persistence, presence/auth on WS, sharing.
+
+## Phase 5 — Crash-safe persistence ✅
+
+Goal: document content survives disconnects and server restarts.
+
+Done:
+- [x] Migration `003_document_updates` (binary `yjs_state` BYTEA, one row per doc).
+- [x] `persistence.js`: `getDocumentState` / `saveDocumentState` (UPSERT; returns false on FK miss instead of throwing, so ephemeral rooms aren't persisted).
+- [x] Integrated via y-websocket `setPersistence` — `bindState` loads DB state before the socket binds (D2) and registers a **debounced (2s)** `ydoc.on('update')` save; `writeState` flushes on last disconnect. No parallel doc Map (D1).
+- [x] Graceful shutdown flushes all active rooms **before** closing the pg pool (D8 ordering).
+- [x] **Tests:** 28 server tests incl. persistence round-trip + upsert + FK-miss, and a **full WS cycle** (client types → disconnects → fresh client reconnects and loads persisted content, 1.97s). 0 vulnerabilities.
+
+Checkpoint: ✅ content survives reconnect/restart (verified by WS persistence integration test).
+
+> Not yet: presence/auth on WS, sharing.
 
 ## Phase 3 — Frontend auth + document list ✅
 
