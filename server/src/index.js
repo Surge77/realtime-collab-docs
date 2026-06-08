@@ -23,7 +23,7 @@ async function start() {
     logger.info(`server listening on http://localhost:${PORT}`);
   });
 
-  // Graceful shutdown. Phase 5 inserts the Yjs room flush before closing pools.
+  // Graceful shutdown: flush active Yjs documents before closing the pools.
   let shuttingDown = false;
   async function shutdown(signal) {
     if (shuttingDown) return;

@@ -9,8 +9,8 @@ const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:4000';
 /**
  * Fetch a short-lived WS ticket, then create a Y.Doc + WebsocketProvider for
  * the document and tear them down cleanly. Exactly one provider per mount.
- * `synced` gates the editor until first sync (D9). The JWT is never put in the
- * URL — the opaque ticket is (Phase 6).
+ * `synced` gates the editor until the first sync completes. The JWT is never put
+ * in the URL — only the opaque, short-lived ticket is.
  *
  * @param {string} documentId
  * @returns {{ ydoc: Y.Doc|null, provider: WebsocketProvider|null,

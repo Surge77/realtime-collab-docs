@@ -4,7 +4,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api
 
 export const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true, // send the httpOnly refresh cookie (D5)
+  withCredentials: true, // send the httpOnly refresh cookie
 });
 
 // Lazily wired by the auth store to avoid an import cycle.

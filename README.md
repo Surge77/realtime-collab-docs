@@ -1,104 +1,90 @@
 # realtime-collab-docs
 
-A Google-Docs-style **real-time collaborative text editor**. Multiple users edit the same document simultaneously, see each other's cursors, and never lose data — even on reconnect or server restart.
+A real-time collaborative text editor. Multiple users edit the same document simultaneously with automatic conflict resolution, live cursors and presence, and durable persistence across reconnects and restarts.
 
-> **Status:** ✅ MVP feature-complete — all 8 phases built and tested (66 automated tests against live Neon + Upstash). Docker Compose and a full 2-browser Playwright E2E are the deferred follow-ups. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for details.
+## Features
 
----
-
-## Why this exists
-
-Real-time collaboration is hard because of **conflict resolution** — two people editing the same line at the same time. This project solves it with a **CRDT** (Conflict-free Replicated Data Type) via [Yjs](https://github.com/yjs/yjs), so merges are automatic and deterministic. No operational-transform server logic to hand-roll.
+- **Real-time collaboration** — concurrent editing with conflict-free merges (CRDT).
+- **Live presence** — see who else is in a document and where their cursor is.
+- **Authentication** — email/password with short-lived access tokens and rotating refresh tokens.
+- **Sharing & permissions** — invite collaborators by email as **editor** or **viewer**; viewer access is read-only and enforced on the server.
+- **Durable documents** — content is persisted continuously and survives reconnects and server restarts.
+- **Document management** — create, rename (auto-saved), list, and delete documents.
 
 ## Tech stack
 
-| Layer | Choice |
-|-------|--------|
-| Conflict resolution | **Yjs** (CRDT) |
-| Transport | **WebSocket** via `y-websocket` |
-| Editor | **CodeMirror 6** + `y-codemirror.next` |
-| Frontend | **React 18 + Vite** |
-| Backend | **Node.js + Express + ws** |
-| Database | **PostgreSQL 16** (metadata + binary Yjs state) |
-| Cache / sessions | **Redis** (WS tickets, presence, refresh tokens, rate limiting) |
-| Auth | **JWT** (in-memory access token + httpOnly refresh cookie) |
-| Password hashing | `@node-rs/argon2` |
-| Validation | `zod` |
-| Tests | Vitest (client) · node:test + supertest (server) |
+| Layer | Technology |
+|-------|------------|
+| Conflict resolution | Yjs (CRDT) |
+| Realtime transport | WebSocket (`y-websocket`) |
+| Editor | CodeMirror 6 (`y-codemirror.next`) |
+| Frontend | React 18 + Vite |
+| Backend | Node.js + Express + `ws` |
+| Database | PostgreSQL |
+| Cache / sessions | Redis |
+| Auth | JWT (access) + httpOnly refresh cookie |
 
-## Architecture at a glance
+## Architecture
 
-- **Yjs is the only source of truth for document body text.** Postgres stores the *binary* Yjs state (`Y.encodeStateAsUpdate`), never plaintext.
-- **Two auth checks, never skipped:** REST (Bearer access token) for metadata + a single-use **WebSocket ticket** (bound to `{userId, documentId}`) for the editing socket. Tokens never travel in a URL.
-- **Crash-safe persistence:** state loads before the socket binds, writes debounce on every Yjs update, and a `SIGTERM` handler flushes all rooms before exit.
+Document text is stored and merged as a Yjs CRDT; the server persists the binary
+document state in PostgreSQL and never stores plaintext content. Editing happens
+over an authenticated WebSocket connection, while document metadata and auth use
+a REST API. Redis backs sessions, presence tickets, and rate limiting.
 
-Full design + the hardened build plan: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-
-## External services / API keys
-
-**MVP needs zero paid API keys.** You only need a Postgres and a Redis instance reachable via connection string. No Docker required for this build:
-
-| Need | Zero-install option | Local option |
-|------|---------------------|--------------|
-| PostgreSQL 16 | [Neon](https://neon.tech) free tier | Postgres installer |
-| Redis | [Upstash](https://upstash.com) free tier | Memurai (Windows-native Redis) |
-
-JWT secrets are generated locally. An email provider (Resend/SendGrid) is only needed **post-MVP** for invite/reset emails.
-
-## Repository layout
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for details.
 
 ```
-client/   React + Vite frontend (CodeMirror + Yjs binding)
-server/   Express API + y-websocket server + persistence
-docs/     ARCHITECTURE.md · PROGRESS.md · CONTEXT.md
+client/   React + Vite frontend (CodeMirror editor + Yjs binding)
+server/   Express API + WebSocket server + persistence
+docs/     Architecture documentation
 ```
 
-## Getting started
+## Prerequisites
 
-> Detailed setup arrives with each phase. Quick version:
+- Node.js 20+
+- A PostgreSQL database and a Redis instance (connection strings)
+
+## Setup
 
 ```bash
-# 1. Provision Postgres + Redis (Neon + Upstash, or local), copy connection strings
-cp server/.env.example server/.env.local   # fill in DATABASE_URL, REDIS_URL (JWT secrets: see below)
+# 1. Configure environment
+cp server/.env.example server/.env.local      # set DATABASE_URL, REDIS_URL, JWT secrets
 cp client/.env.example client/.env.local
 
-# generate JWT / WS secrets:
+# Generate the JWT / WebSocket-ticket secrets:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
-# 2. Install
+# 2. Install dependencies
 cd server && npm install
 cd ../client && npm install
 
-# 3. Migrate the database (server/)
+# 3. Apply database migrations (from server/)
 npm run migrate
+```
 
-# 4. Run (separate terminals)
-npm run dev   # in server/  → http://localhost:4000
-npm run dev   # in client/  → http://localhost:5173
+## Running
 
-# Tests
-npm test      # in server/ (live Neon+Upstash) and client/ (Vitest)
+```bash
+# Backend (server/) → http://localhost:4000
+npm run dev
+
+# Frontend (client/) → http://localhost:5173
+npm run dev
 ```
 
 ### Production (single server)
 
 ```bash
-cd client && npm run build          # emits client/dist
-cd ../server && NODE_ENV=production npm start   # serves API + built client on :4000
+cd client && npm run build                       # outputs client/dist
+cd ../server && NODE_ENV=production npm start     # serves the API and the built client on :4000
 ```
 
-## Roadmap (8 phases)
+## Testing
 
-1. Foundation — CodeMirror editor renders
-2. Backend skeleton + hardened auth
-3. Frontend auth + document list
-4. Yjs + WebSocket (single user)
-5. Crash-safe persistence
-6. Multi-user sync + presence + WS auth
-7. Sharing & permissions
-8. Polish & production readiness
-
-Live status in [`docs/PROGRESS.md`](docs/PROGRESS.md).
+```bash
+cd server && npm test     # API + WebSocket integration tests
+cd client && npm test     # component and hook tests
+```
 
 ## License
 

@@ -27,7 +27,7 @@ describe('ws-ticket', () => {
     assert.equal(await validateTicket(null), null);
   });
 
-  it('binds the ticket to a single document (D3)', async () => {
+  it('binds the ticket to a single document', async () => {
     const userId = randomUUID();
     const docA = randomUUID();
     const token = await createTicket(userId, docA);

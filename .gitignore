@@ -34,6 +34,10 @@ coverage/
 .DS_Store
 Thumbs.db
 
+# Local tooling / agent config (not part of the published project)
+CLAUDE.md
+.playwright-mcp/
+
 # Local data stores (if run natively, not Docker)
 *.rdb
 pgdata/

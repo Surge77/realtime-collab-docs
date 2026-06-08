@@ -29,7 +29,7 @@ function waitFor(predicate, { timeout = 4000, interval = 25 } = {}) {
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-describe('viewer read-only enforced server-side (D4)', () => {
+describe('viewer read-only enforced server-side', () => {
   let server;
   let port;
   let docId;

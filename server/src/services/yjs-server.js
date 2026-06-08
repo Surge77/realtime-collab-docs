@@ -59,7 +59,7 @@ const SYNC_STEP1 = 0;
 /**
  * For a read-only (viewer) connection, allow only reads: awareness/auth/query
  * messages and sync step-1 (state request). Block sync step-2 and updates,
- * which are writes (D4 — server-side enforcement, not just client readOnly).
+ * which are writes. Enforced server-side, not merely in the client UI.
  */
 export function isReadOnlyAllowed(data) {
   const bytes =
@@ -104,7 +104,7 @@ export function createReadOnlyConn(realConn) {
   };
 }
 
-/** Flush every active room to the DB. Called during graceful shutdown (D8). */
+/** Flush every active room to the DB. Called during graceful shutdown. */
 export async function flushAllRooms() {
   for (const [docName, ydoc] of docs) {
     clearTimeout(saveTimers.get(docName));
@@ -130,7 +130,7 @@ export function extractTicket(url) {
 /**
  * Decide whether to accept a WebSocket upgrade.
  * Rejects non-/yjs paths and browser origins that don't match CLIENT_ORIGIN.
- * (Phase 6 adds the WS-ticket auth + per-document permission check.)
+ * Ticket validation and per-document authorization happen in the upgrade handler.
  */
 export function isAllowedUpgrade(req) {
   if (!extractDocName(req.url)) return false;
@@ -161,7 +161,7 @@ export function setupYjsWebSocket(httpServer) {
 
       const docName = extractDocName(req.url);
       const auth = await validateTicket(extractTicket(req.url));
-      // Invalid/expired ticket → 4001; ticket bound to a different doc → 4003 (D3).
+      // Invalid/expired ticket → 401; ticket bound to a different document → 403.
       if (!auth) return reject(socket, '401 Unauthorized');
       if (auth.documentId !== docName) return reject(socket, '403 Forbidden');
 

@@ -9,7 +9,7 @@ const ticketKey = (token) => `wsticket:${token}`;
  * Mint a short-lived, document-scoped WebSocket ticket. The JWT never travels
  * in the WS URL — this opaque token does. Reusable within its TTL (so provider
  * reconnects work); bound to { userId, documentId } so it can't be replayed on
- * another document (D3).
+ * another document.
  *
  * @param {string} userId
  * @param {string} documentId

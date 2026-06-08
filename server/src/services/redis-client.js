@@ -8,7 +8,7 @@ if (!url) {
 }
 
 // keyPrefix namespaces every key so one Upstash DB can be shared across
-// projects without collisions (see CONTEXT.md). rediss:// auto-enables TLS.
+// projects without collisions. rediss:// auto-enables TLS.
 export const redis = new Redis(url, {
   keyPrefix: process.env.REDIS_KEY_PREFIX ?? 'rcd:',
   maxRetriesPerRequest: 3,
