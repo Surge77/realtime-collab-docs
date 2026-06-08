@@ -1,23 +1,20 @@
-import { render, cleanup, act } from '@testing-library/react';
+import { render, cleanup, act, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-// Track provider instances to assert lifecycle.
 const instances = [];
 
 vi.mock('y-websocket', () => {
   class FakeWebsocketProvider {
-    constructor(url, room, doc) {
+    constructor(url, room, doc, opts) {
       this.url = url;
       this.room = room;
       this.doc = doc;
+      this.opts = opts;
       this.awareness = { setLocalStateField: vi.fn(), on: vi.fn(), off: vi.fn() };
-      this.handlers = {};
       this.destroyed = false;
       instances.push(this);
     }
-    on(event, cb) {
-      this.handlers[event] = cb;
-    }
+    on() {}
     off() {}
     destroy() {
       this.destroyed = true;
@@ -26,11 +23,15 @@ vi.mock('y-websocket', () => {
   return { WebsocketProvider: FakeWebsocketProvider };
 });
 
+vi.mock('../services/document-service.js', () => ({
+  getWsTicket: vi.fn().mockResolvedValue('ticket-123'),
+}));
+
 import { useYjs } from './use-yjs.js';
 
 function Harness({ documentId }) {
-  const { yText, status } = useYjs(documentId);
-  return <div data-testid="status">{yText ? `ready:${status}` : 'pending'}</div>;
+  const { yText } = useYjs(documentId);
+  return <div data-testid="status">{yText ? 'ready' : 'pending'}</div>;
 }
 
 afterEach(() => {
@@ -39,14 +40,15 @@ afterEach(() => {
 });
 
 describe('useYjs', () => {
-  it('creates exactly one provider and exposes yText', async () => {
+  it('fetches a ticket then creates exactly one provider with it', async () => {
     let utils;
     await act(async () => {
       utils = render(<Harness documentId="doc-1" />);
     });
-    expect(instances).toHaveLength(1);
+    await waitFor(() => expect(instances).toHaveLength(1));
     expect(instances[0].room).toBe('doc-1');
-    expect(utils.getByTestId('status').textContent).toMatch(/^ready:/);
+    expect(instances[0].opts.params.ticket).toBe('ticket-123');
+    await waitFor(() => expect(utils.getByTestId('status').textContent).toBe('ready'));
   });
 
   it('destroys the provider on unmount (no duplicate-provider leak)', async () => {
@@ -54,10 +56,10 @@ describe('useYjs', () => {
     await act(async () => {
       utils = render(<Harness documentId="doc-1" />);
     });
+    await waitFor(() => expect(instances).toHaveLength(1));
     await act(async () => {
       utils.unmount();
     });
-    expect(instances).toHaveLength(1);
     expect(instances[0].destroyed).toBe(true);
   });
 });

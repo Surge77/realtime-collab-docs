@@ -12,7 +12,7 @@ Live status of the build. Updated at the end of every phase (and every meaningfu
 | 3 | Frontend auth + document list | ✅ Done |
 | 4 | Yjs + WebSocket (single user) | ✅ Done |
 | 5 | Crash-safe persistence | ✅ Done |
-| 6 | Multi-user sync + presence + WS auth | ⬜ Not started |
+| 6 | Multi-user sync + presence + WS auth | ✅ Done |
 | 7 | Sharing & permissions | ⬜ Not started |
 | 8 | Polish & production readiness | ⬜ Not started |
 
@@ -88,6 +88,21 @@ Done:
 Checkpoint: ✅ content survives reconnect/restart (verified by WS persistence integration test).
 
 > Not yet: presence/auth on WS, sharing.
+
+## Phase 6 — Multi-user sync + presence + WS auth ✅
+
+Goal: authenticated multi-user editing with live presence.
+
+Done:
+- [x] `ws-ticket.js`: mint/validate short-lived, doc+user-scoped Redis tickets (D3). Reusable within 60s TTL for reconnect compatibility (tradeoff documented in CONTEXT.md).
+- [x] `POST /api/documents/:id/ws-ticket` (access-checked) — JWT stays out of the WS URL.
+- [x] WS `upgrade` now validates the ticket and its document binding; rejects missing/invalid (401) and wrong-doc (403).
+- [x] Client `useYjs` fetches a ticket then connects with `params.ticket`. `usePresence` publishes the local user to awareness and tracks remotes (self excluded, deduped by userId). `CollaboratorList` avatars in the editor bar.
+- [x] **Tests:** server 32 (ws-ticket lifecycle + doc-binding, WS rejects no-ticket, sync/persistence now ticketed); client 17 (useYjs fetches ticket + single provider + cleanup, presence dedup). 0 vulnerabilities.
+
+Checkpoint: ✅ authenticated WS sync verified; no-ticket connection rejected; presence dedup verified. Full 2-browser visual pass in Phase 8.
+
+> Not yet: sharing & permissions.
 
 ## Phase 3 — Frontend auth + document list ✅
 

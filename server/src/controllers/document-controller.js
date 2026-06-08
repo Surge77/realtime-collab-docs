@@ -7,6 +7,7 @@ import {
   listForUser,
   updateTitle,
 } from '../models/document.js';
+import { createTicket } from '../services/ws-ticket.js';
 
 const DEFAULT_TITLE = 'Untitled Document';
 
@@ -48,4 +49,16 @@ export const remove = asyncHandler(async (req, res) => {
   await loadOwnedDocument(req.params.id, req.user.id);
   await deleteById(req.params.id);
   res.status(204).send();
+});
+
+// Mint a short-lived WS ticket after confirming the user may access the doc.
+// (Phase 7 will broaden access to shared collaborators via permissions.)
+export const wsTicket = asyncHandler(async (req, res) => {
+  const document = await findById(req.params.id);
+  if (!document) throw notFound('Document not found');
+  if (document.ownerId !== req.user.id && !document.isPublic) {
+    throw forbidden('You do not have access to this document');
+  }
+  const ticket = await createTicket(req.user.id, document.id);
+  res.json({ ticket });
 });

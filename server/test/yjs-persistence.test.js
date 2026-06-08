@@ -10,6 +10,7 @@ import { WebSocket } from 'ws';
 
 import { setupYjsWebSocket } from '../src/services/yjs-server.js';
 import { getDocumentState } from '../src/services/persistence.js';
+import { createTicket } from '../src/services/ws-ticket.js';
 import { createUser } from '../src/models/user.js';
 import { createDocument } from '../src/models/document.js';
 import { pool, closePool } from '../src/db/connection.js';
@@ -35,6 +36,7 @@ describe('yjs persistence over WS (survives reconnect/restart)', () => {
   let server;
   let port;
   let docId;
+  let ticket;
   let userEmail;
 
   before(async () => {
@@ -48,6 +50,7 @@ describe('yjs persistence over WS (survives reconnect/restart)', () => {
     const user = await createUser({ email: userEmail, username: `wsp_${id}`, passwordHash: 'x' });
     const doc = await createDocument({ title: 'WS Persist', ownerId: user.id });
     docId = doc.id;
+    ticket = await createTicket(user.id, docId);
   });
 
   after(async () => {
@@ -62,7 +65,7 @@ describe('yjs persistence over WS (survives reconnect/restart)', () => {
 
     // Client 1 connects, types, then disconnects (triggers writeState flush).
     const doc1 = new Y.Doc();
-    const p1 = new WebsocketProvider(url, docId, doc1, { WebSocketPolyfill: WebSocket });
+    const p1 = new WebsocketProvider(url, docId, doc1, { params: { ticket }, WebSocketPolyfill: WebSocket });
     await waitFor(() => p1.wsconnected);
     doc1.getText('content').insert(0, 'restart text');
     p1.destroy();
@@ -73,7 +76,7 @@ describe('yjs persistence over WS (survives reconnect/restart)', () => {
 
     // Client 2 connects fresh to the same room — bindState loads from the DB.
     const doc2 = new Y.Doc();
-    const p2 = new WebsocketProvider(url, docId, doc2, { WebSocketPolyfill: WebSocket });
+    const p2 = new WebsocketProvider(url, docId, doc2, { params: { ticket }, WebSocketPolyfill: WebSocket });
     try {
       await waitFor(() => doc2.getText('content').toString() === 'restart text');
       assert.equal(doc2.getText('content').toString(), 'restart text');

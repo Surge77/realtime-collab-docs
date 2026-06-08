@@ -5,6 +5,7 @@ import * as Y from 'yjs';
 
 import { logger } from '../utils/logger.js';
 import { getDocumentState, saveDocumentState } from './persistence.js';
+import { validateTicket } from './ws-ticket.js';
 
 // y-websocket ships its server helpers as CommonJS; load them through require.
 const require = createRequire(import.meta.url);
@@ -66,6 +67,13 @@ export function extractDocName(url) {
   return afterPrefix.length > 0 ? decodeURIComponent(afterPrefix) : null;
 }
 
+/** Extract the ?ticket=... query param from the upgrade URL. */
+export function extractTicket(url) {
+  const queryString = url?.split('?')[1];
+  if (!queryString) return null;
+  return new URLSearchParams(queryString).get('ticket');
+}
+
 /**
  * Decide whether to accept a WebSocket upgrade.
  * Rejects non-/yjs paths and browser origins that don't match CLIENT_ORIGIN.
@@ -88,15 +96,26 @@ export function setupYjsWebSocket(httpServer) {
     setupWSConnection(conn, req, { docName, gc: true });
   });
 
+  const reject = (socket, line) => {
+    socket.write(`HTTP/1.1 ${line}\r\n\r\n`);
+    socket.destroy();
+  };
+
   httpServer.on('upgrade', (req, socket, head) => {
-    if (!isAllowedUpgrade(req)) {
-      socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
-      socket.destroy();
-      return;
-    }
-    wss.handleUpgrade(req, socket, head, (conn) => {
-      wss.emit('connection', conn, req);
-    });
+    void (async () => {
+      if (!isAllowedUpgrade(req)) return reject(socket, '400 Bad Request');
+
+      const docName = extractDocName(req.url);
+      const auth = await validateTicket(extractTicket(req.url));
+      // Invalid/expired ticket → 4001; ticket bound to a different doc → 4003 (D3).
+      if (!auth) return reject(socket, '401 Unauthorized');
+      if (auth.documentId !== docName) return reject(socket, '403 Forbidden');
+
+      req.userId = auth.userId;
+      wss.handleUpgrade(req, socket, head, (conn) => {
+        wss.emit('connection', conn, req);
+      });
+    })();
   });
 
   logger.info('yjs websocket server attached at /yjs');

@@ -31,7 +31,7 @@ Ship a data-safe, secure, testable MVP of a real-time collaborative editor. Corr
 Tracked in detail in `ARCHITECTURE.md` as D1–D10. Highlights:
 - **D1** dual doc-instance split → use `setPersistence`, not a parallel Map.
 - **D2** empty-doc load race → `await` DB load inside `bindState` before socket binds.
-- **D3** WS ticket replay → bind ticket to `{userId, documentId}`.
+- **D3** WS ticket replay → bind ticket to `{userId, documentId}`. **Tradeoff (Phase 6):** the ticket is reusable within a short TTL (60s) rather than strictly single-use, because `WebsocketProvider` reuses the same URL params on auto-reconnect — a single-use ticket would dead-loop on the first reconnect. Still keeps the JWT out of the URL and still enforces the document binding; only relaxation is replayability within a 60s window.
 - **D4** client-only read-only = privilege escalation → enforce viewer read-only server-side.
 - **D5** cross-origin cookie → CORS `credentials:true` + axios `withCredentials`; prod cross-domain needs `SameSite=None`+CSRF.
 - **D6** native module build fail on Windows → `@node-rs/argon2`.

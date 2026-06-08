@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 
+import { getWsTicket } from '../services/document-service.js';
+
 const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:4000';
 
 /**
- * Create a Y.Doc + WebsocketProvider for a document and tear them down cleanly.
- * Exactly one provider exists per mount (cleanup destroys it), avoiding the
- * duplicate-provider leak. `synced` gates the editor until first sync (D9).
+ * Fetch a short-lived WS ticket, then create a Y.Doc + WebsocketProvider for
+ * the document and tear them down cleanly. Exactly one provider per mount.
+ * `synced` gates the editor until first sync (D9). The JWT is never put in the
+ * URL — the opaque ticket is (Phase 6).
  *
  * @param {string} documentId
  * @returns {{ ydoc: Y.Doc|null, provider: WebsocketProvider|null,
@@ -19,21 +22,38 @@ export function useYjs(documentId) {
   const [status, setStatus] = useState('connecting');
 
   useEffect(() => {
-    const ydoc = new Y.Doc();
-    const provider = new WebsocketProvider(`${WS_URL}/yjs`, documentId, ydoc);
+    let cancelled = false;
+    let provider;
+    let ydoc;
 
     const onStatus = (event) => setStatus(event.status);
     const onSync = (isSynced) => setSynced(isSynced);
-    provider.on('status', onStatus);
-    provider.on('sync', onSync);
 
-    setConn({ ydoc, provider });
+    setStatus('connecting');
+    setSynced(false);
+
+    (async () => {
+      try {
+        const ticket = await getWsTicket(documentId);
+        if (cancelled) return;
+        ydoc = new Y.Doc();
+        provider = new WebsocketProvider(`${WS_URL}/yjs`, documentId, ydoc, {
+          params: { ticket },
+        });
+        provider.on('status', onStatus);
+        provider.on('sync', onSync);
+        setConn({ ydoc, provider });
+      } catch {
+        if (!cancelled) setStatus('error');
+      }
+    })();
 
     return () => {
-      provider.off('status', onStatus);
-      provider.off('sync', onSync);
-      provider.destroy();
-      ydoc.destroy();
+      cancelled = true;
+      provider?.off('status', onStatus);
+      provider?.off('sync', onSync);
+      provider?.destroy();
+      ydoc?.destroy();
       setConn(null);
       setSynced(false);
       setStatus('connecting');

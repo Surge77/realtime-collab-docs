@@ -23,3 +23,8 @@ export async function renameDocument(id, title) {
 export async function deleteDocument(id) {
   await api.delete(`/documents/${id}`);
 }
+
+export async function getWsTicket(id) {
+  const { data } = await api.post(`/documents/${id}/ws-ticket`);
+  return data.ticket;
+}

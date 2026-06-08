@@ -6,6 +6,7 @@ import {
   list,
   remove,
   updateTitleHandler,
+  wsTicket,
 } from '../controllers/document-controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 
@@ -18,3 +19,4 @@ documentsRouter.post('/', create);
 documentsRouter.get('/:id', get);
 documentsRouter.patch('/:id', updateTitleHandler);
 documentsRouter.delete('/:id', remove);
+documentsRouter.post('/:id/ws-ticket', wsTicket);
