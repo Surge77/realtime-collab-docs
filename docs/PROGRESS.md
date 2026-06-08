@@ -8,7 +8,7 @@ Live status of the build. Updated at the end of every phase (and every meaningfu
 |-------|-------|--------|
 | 0 | Repo + docs init | ✅ Done |
 | 1 | Foundation — CodeMirror editor | ✅ Done |
-| 2 | Backend skeleton + hardened auth | ⬜ Not started |
+| 2 | Backend skeleton + hardened auth | ✅ Done |
 | 3 | Frontend auth + document list | ⬜ Not started |
 | 4 | Yjs + WebSocket (single user) | ⬜ Not started |
 | 5 | Crash-safe persistence | ⬜ Not started |
@@ -41,6 +41,24 @@ Done:
 Checkpoint: ✅ editor renders, typing works, suite green, build clean.
 
 > Not yet: auth, WebSocket, Yjs, routing, backend.
+
+## Phase 2 — Backend skeleton + hardened auth ✅
+
+Goal: Express API with hardened auth, migrations, and document CRUD — verified against live Neon + Upstash.
+
+Done:
+- [x] Server scaffold (ESM): pg pool (TLS for Neon), ioredis client (namespaced `rcd:`), pino logger.
+- [x] Connectivity smoke test — Postgres 18.4 + Redis PONG.
+- [x] Minimal tracked SQL migration runner; migrations `001_create_users`, `002_create_documents` applied.
+- [x] Auth: `@node-rs/argon2` hashing, zod validation (field-level errors), JWT access token, refresh token as **httpOnly+SameSite cookie** with SHA-256 hash stored in Redis. Routes: register/login/refresh/logout/me.
+- [x] `authenticate` middleware, consistent `{ error: { code, message } }` handler, Redis-backed `express-rate-limit` on `/api/auth/*`.
+- [x] Document CRUD (owner-scoped): list/create/get/patch/delete with 401/403/404 authz.
+- [x] `/healthz` checks both stores; graceful SIGTERM shutdown (Yjs flush hook reserved for Phase 5).
+- [x] **17 tests passing** (unit: validation + jwt; integration via supertest: auth flows, document CRUD + authz, healthz). 0 npm vulnerabilities.
+
+Checkpoint: ✅ register → login (cookie set) → create/list/rename/delete docs; wrong-user blocked; healthz ok.
+
+> Not yet: Yjs/WebSocket, persistence, presence, sharing.
 
 ---
 
