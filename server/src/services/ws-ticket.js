@@ -13,11 +13,17 @@ const ticketKey = (token) => `wsticket:${token}`;
  *
  * @param {string} userId
  * @param {string} documentId
+ * @param {string} [role='editor']  the user's role on the document
  * @returns {Promise<string>} the ticket token
  */
-export async function createTicket(userId, documentId) {
+export async function createTicket(userId, documentId, role = 'editor') {
   const token = randomBytes(24).toString('hex');
-  await redis.set(ticketKey(token), JSON.stringify({ userId, documentId }), 'EX', TTL_SECONDS);
+  await redis.set(
+    ticketKey(token),
+    JSON.stringify({ userId, documentId, role }),
+    'EX',
+    TTL_SECONDS,
+  );
   return token;
 }
 

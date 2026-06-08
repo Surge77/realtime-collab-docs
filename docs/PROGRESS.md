@@ -13,7 +13,7 @@ Live status of the build. Updated at the end of every phase (and every meaningfu
 | 4 | Yjs + WebSocket (single user) | ✅ Done |
 | 5 | Crash-safe persistence | ✅ Done |
 | 6 | Multi-user sync + presence + WS auth | ✅ Done |
-| 7 | Sharing & permissions | ⬜ Not started |
+| 7 | Sharing & permissions | ✅ Done |
 | 8 | Polish & production readiness | ⬜ Not started |
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⚠️ blocked
@@ -103,6 +103,21 @@ Done:
 Checkpoint: ✅ authenticated WS sync verified; no-ticket connection rejected; presence dedup verified. Full 2-browser visual pass in Phase 8.
 
 > Not yet: sharing & permissions.
+
+## Phase 7 — Sharing & permissions ✅
+
+Goal: owners invite collaborators by email; roles enforced everywhere, including server-side viewer read-only (D4).
+
+Done:
+- [x] `permission` model (upsert/remove/getRole/listCollaborators); `listForUser` now unions owned + shared docs.
+- [x] Routes: `POST /:id/share` (owner; 404 unknown email, 400 self-share), `GET/DELETE /:id/collaborators`. `get` + `ws-ticket` resolve role (owner/editor/viewer/public→viewer/none→403).
+- [x] WS ticket carries role; **viewer read-only enforced server-side** — `createReadOnlyConn` drops inbound sync writes, allows reads + awareness (D4). Verified: viewer write dropped, owner edits still delivered to viewer.
+- [x] Client: `ShareModal` (invite by email + role, manage/remove collaborators); Share button shown to owners; `getDocument` returns role.
+- [x] **Tests:** server 40 (sharing flows, self/unknown email, list/remove, viewer-cannot-write over WS, read-only filter unit); client 20 (ShareModal list/share/error). 0 vulnerabilities.
+
+Checkpoint: ✅ non-owner blocked (403 REST + WS); viewer cannot mutate via WS; owner shares editor/viewer by email.
+
+> Remaining: Phase 8 polish (rotation, title autosave, toasts, error boundaries, 2-browser E2E).
 
 ## Phase 3 — Frontend auth + document list ✅
 

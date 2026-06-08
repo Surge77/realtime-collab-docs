@@ -57,7 +57,7 @@ describe('yjs sync (two clients)', () => {
 
   it('propagates text edits between two clients in the same room', async () => {
     const url = `ws://localhost:${port}/yjs`;
-    const opts = { params: { ticket }, WebSocketPolyfill: WebSocket };
+    const opts = { params: { ticket }, WebSocketPolyfill: WebSocket, disableBc: true };
     const doc1 = new Y.Doc();
     const doc2 = new Y.Doc();
     const p1 = new WebsocketProvider(url, docId, doc1, opts);

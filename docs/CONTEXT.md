@@ -32,7 +32,7 @@ Tracked in detail in `ARCHITECTURE.md` as D1–D10. Highlights:
 - **D1** dual doc-instance split → use `setPersistence`, not a parallel Map.
 - **D2** empty-doc load race → `await` DB load inside `bindState` before socket binds.
 - **D3** WS ticket replay → bind ticket to `{userId, documentId}`. **Tradeoff (Phase 6):** the ticket is reusable within a short TTL (60s) rather than strictly single-use, because `WebsocketProvider` reuses the same URL params on auto-reconnect — a single-use ticket would dead-loop on the first reconnect. Still keeps the JWT out of the URL and still enforces the document binding; only relaxation is replayability within a 60s window.
-- **D4** client-only read-only = privilege escalation → enforce viewer read-only server-side.
+- **D4** client-only read-only = privilege escalation → enforce viewer read-only server-side. **Implemented:** a connection wrapper (`createReadOnlyConn`) decodes inbound y-protocol messages and drops sync step-2/update (writes) for viewer connections, allowing only step-1 (reads) + awareness. Note: y-websocket also syncs providers of the same room *within one process* via BroadcastChannel — server gating still applies across real (separate-process) clients; WS integration tests pass `disableBc: true` to exercise the server path rather than the in-process channel.
 - **D5** cross-origin cookie → CORS `credentials:true` + axios `withCredentials`; prod cross-domain needs `SameSite=None`+CSRF.
 - **D6** native module build fail on Windows → `@node-rs/argon2`.
 - **D7** Redis is a hard dep from Phase 6; `/healthz` checks both stores, fail fast at startup.

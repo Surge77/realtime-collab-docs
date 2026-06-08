@@ -11,10 +11,13 @@ export async function createDocument({ title, ownerId }) {
   return rows[0];
 }
 
-/** Documents the user owns. (Phase 7 will union in shared documents.) */
+/** Documents the user owns OR has been granted access to via permissions. */
 export async function listForUser(userId) {
   const { rows } = await query(
-    `SELECT ${FIELDS} FROM documents WHERE owner_id = $1 ORDER BY updated_at DESC`,
+    `SELECT ${FIELDS} FROM documents d
+     WHERE d.owner_id = $1
+        OR d.id IN (SELECT document_id FROM document_permissions WHERE user_id = $1)
+     ORDER BY d.updated_at DESC`,
     [userId],
   );
   return rows;

@@ -65,7 +65,7 @@ describe('yjs persistence over WS (survives reconnect/restart)', () => {
 
     // Client 1 connects, types, then disconnects (triggers writeState flush).
     const doc1 = new Y.Doc();
-    const p1 = new WebsocketProvider(url, docId, doc1, { params: { ticket }, WebSocketPolyfill: WebSocket });
+    const p1 = new WebsocketProvider(url, docId, doc1, { params: { ticket }, WebSocketPolyfill: WebSocket, disableBc: true });
     await waitFor(() => p1.wsconnected);
     doc1.getText('content').insert(0, 'restart text');
     p1.destroy();
@@ -76,7 +76,7 @@ describe('yjs persistence over WS (survives reconnect/restart)', () => {
 
     // Client 2 connects fresh to the same room — bindState loads from the DB.
     const doc2 = new Y.Doc();
-    const p2 = new WebsocketProvider(url, docId, doc2, { params: { ticket }, WebSocketPolyfill: WebSocket });
+    const p2 = new WebsocketProvider(url, docId, doc2, { params: { ticket }, WebSocketPolyfill: WebSocket, disableBc: true });
     try {
       await waitFor(() => doc2.getText('content').toString() === 'restart text');
       assert.equal(doc2.getText('content').toString(), 'restart text');

@@ -1,5 +1,10 @@
-import { asyncHandler, forbidden, notFound } from '../utils/errors.js';
-import { createDocumentSchema, parseOrThrow, updateDocumentSchema } from '../utils/validation.js';
+import { asyncHandler, badRequest, forbidden, notFound } from '../utils/errors.js';
+import {
+  createDocumentSchema,
+  parseOrThrow,
+  shareSchema,
+  updateDocumentSchema,
+} from '../utils/validation.js';
 import {
   createDocument,
   deleteById,
@@ -7,9 +12,25 @@ import {
   listForUser,
   updateTitle,
 } from '../models/document.js';
+import { findByEmail } from '../models/user.js';
+import {
+  getPermissionRole,
+  listCollaborators,
+  removePermission,
+  upsertPermission,
+} from '../models/permission.js';
 import { createTicket } from '../services/ws-ticket.js';
 
 const DEFAULT_TITLE = 'Untitled Document';
+
+/** Resolve a user's role on a document: owner | editor | viewer | null. */
+async function resolveRole(document, userId) {
+  if (document.ownerId === userId) return 'owner';
+  const role = await getPermissionRole(document.id, userId);
+  if (role) return role;
+  if (document.isPublic) return 'viewer';
+  return null;
+}
 
 async function loadOwnedDocument(id, userId) {
   const document = await findById(id);
@@ -32,10 +53,9 @@ export const create = asyncHandler(async (req, res) => {
 export const get = asyncHandler(async (req, res) => {
   const document = await findById(req.params.id);
   if (!document) throw notFound('Document not found');
-  if (document.ownerId !== req.user.id && !document.isPublic) {
-    throw forbidden('You do not have access to this document');
-  }
-  res.json({ document });
+  const role = await resolveRole(document, req.user.id);
+  if (!role) throw forbidden('You do not have access to this document');
+  res.json({ document, role });
 });
 
 export const updateTitleHandler = asyncHandler(async (req, res) => {
@@ -51,14 +71,41 @@ export const remove = asyncHandler(async (req, res) => {
   res.status(204).send();
 });
 
-// Mint a short-lived WS ticket after confirming the user may access the doc.
-// (Phase 7 will broaden access to shared collaborators via permissions.)
+// Mint a short-lived WS ticket carrying the user's role (drives read-only).
 export const wsTicket = asyncHandler(async (req, res) => {
   const document = await findById(req.params.id);
   if (!document) throw notFound('Document not found');
-  if (document.ownerId !== req.user.id && !document.isPublic) {
+  const role = await resolveRole(document, req.user.id);
+  if (!role) throw forbidden('You do not have access to this document');
+  const ticket = await createTicket(req.user.id, document.id, role);
+  res.json({ ticket });
+});
+
+export const share = asyncHandler(async (req, res) => {
+  await loadOwnedDocument(req.params.id, req.user.id);
+  const { email, role } = parseOrThrow(shareSchema, req.body);
+
+  const target = await findByEmail(email);
+  if (!target) throw notFound('No user with that email');
+  if (target.id === req.user.id) throw badRequest('You already own this document');
+
+  await upsertPermission(req.params.id, target.id, role);
+  res.status(201).json({
+    collaborator: { userId: target.id, username: target.username, email: target.email, role },
+  });
+});
+
+export const removeCollaborator = asyncHandler(async (req, res) => {
+  await loadOwnedDocument(req.params.id, req.user.id);
+  await removePermission(req.params.id, req.params.userId);
+  res.status(204).send();
+});
+
+export const collaborators = asyncHandler(async (req, res) => {
+  const document = await findById(req.params.id);
+  if (!document) throw notFound('Document not found');
+  if (!(await resolveRole(document, req.user.id))) {
     throw forbidden('You do not have access to this document');
   }
-  const ticket = await createTicket(req.user.id, document.id);
-  res.json({ ticket });
+  res.json({ collaborators: await listCollaborators(req.params.id) });
 });

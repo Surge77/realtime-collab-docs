@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 
 import { WebSocketServer } from 'ws';
 import * as Y from 'yjs';
+import * as decoding from 'lib0/decoding';
 
 import { logger } from '../utils/logger.js';
 import { getDocumentState, saveDocumentState } from './persistence.js';
@@ -51,6 +52,58 @@ setPersistence({
   },
 });
 
+// y-protocols message tags: messageType 0 = sync; within sync, 0 = step1.
+const MESSAGE_SYNC = 0;
+const SYNC_STEP1 = 0;
+
+/**
+ * For a read-only (viewer) connection, allow only reads: awareness/auth/query
+ * messages and sync step-1 (state request). Block sync step-2 and updates,
+ * which are writes (D4 — server-side enforcement, not just client readOnly).
+ */
+export function isReadOnlyAllowed(data) {
+  const bytes =
+    data instanceof ArrayBuffer
+      ? new Uint8Array(data)
+      : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  const decoder = decoding.createDecoder(bytes);
+  const messageType = decoding.readVarUint(decoder);
+  if (messageType !== MESSAGE_SYNC) return true;
+  return decoding.readVarUint(decoder) === SYNC_STEP1;
+}
+
+/**
+ * Wrap a WebSocket so inbound write messages are dropped (viewer connections).
+ * Delegates the full surface setupWSConnection uses: send/close/ping/readyState/
+ * binaryType/on.
+ */
+export function createReadOnlyConn(realConn) {
+  return {
+    get readyState() {
+      return realConn.readyState;
+    },
+    get binaryType() {
+      return realConn.binaryType;
+    },
+    set binaryType(v) {
+      realConn.binaryType = v;
+    },
+    send: (...args) => realConn.send(...args),
+    close: (...args) => realConn.close(...args),
+    ping: (...args) => realConn.ping(...args),
+    on(event, cb) {
+      if (event === 'message') {
+        realConn.on('message', (msg, isBinary) => {
+          if (isReadOnlyAllowed(msg)) cb(msg, isBinary);
+        });
+      } else {
+        realConn.on(event, cb);
+      }
+      return this;
+    },
+  };
+}
+
 /** Flush every active room to the DB. Called during graceful shutdown (D8). */
 export async function flushAllRooms() {
   for (const [docName, ydoc] of docs) {
@@ -93,7 +146,8 @@ export function setupYjsWebSocket(httpServer) {
 
   wss.on('connection', (conn, req) => {
     const docName = extractDocName(req.url);
-    setupWSConnection(conn, req, { docName, gc: true });
+    const gatedConn = req.role === 'viewer' ? createReadOnlyConn(conn) : conn;
+    setupWSConnection(gatedConn, req, { docName, gc: true });
   });
 
   const reject = (socket, line) => {
@@ -112,6 +166,7 @@ export function setupYjsWebSocket(httpServer) {
       if (auth.documentId !== docName) return reject(socket, '403 Forbidden');
 
       req.userId = auth.userId;
+      req.role = auth.role;
       wss.handleUpgrade(req, socket, head, (conn) => {
         wss.emit('connection', conn, req);
       });
