@@ -9,8 +9,10 @@ import { logger } from './utils/logger.js';
 const PORT = Number(process.env.PORT ?? 4000);
 
 async function start() {
-  // Fail fast if Redis is unreachable (lazyConnect defers the first connection).
-  await redis.connect();
+  // Fail fast if Redis is unreachable. ping() triggers the lazy connection and
+  // is safe whether or not the client is already connected (unlike connect(),
+  // which throws if a connection is already in progress).
+  await redis.ping();
   logger.info('redis connected');
 
   const app = createApp();
