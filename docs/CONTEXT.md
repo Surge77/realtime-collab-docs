@@ -47,6 +47,11 @@ Single server only. In-memory room state and a single-row `document_updates` sna
 - Logout does not instantly revoke the access token (stateless JWT valid up to its 15m TTL). Acceptable with short TTL.
 - A mid-session permission revoke does not kick an already-connected socket.
 
+## Accepted dependency-audit findings
+
+- **vite ≤6.4.1 — path traversal in optimized-deps `.map` handling (moderate, GHSA-4w7w-66w2-5vf9).** Dev-server only; not present in the production build or exposed to end users. Fix requires a vite 8 major bump (cascades to `@vitejs/plugin-react` v5 + config). Deferred to Phase 8 hardening. Mitigated meanwhile by not running `vite dev` while browsing untrusted sites.
+- Cleared in Phase 1: vitest RCE (critical) → vitest 4.1.8; esbuild dev-server request leak (moderate) → `overrides.esbuild` 0.25.10.
+
 ## Environments
 
 - Dev: client `http://localhost:5173`, server `http://localhost:4000`. Same-site (both `localhost`) so `SameSite=Strict` refresh cookie works across ports.
