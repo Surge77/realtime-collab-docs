@@ -101,6 +101,24 @@ describe('auth', () => {
     assert.equal(res.status, 200);
     assert.ok(res.body.accessToken);
   });
+
+  it('rotates the refresh token and detects reuse of the old one', async () => {
+    const { res } = await registerUser();
+    const oldCookie = res.headers['set-cookie'].find((c) => c.startsWith('refreshToken='));
+
+    // First refresh with the original cookie succeeds and rotates the token.
+    const first = await request(app).post('/api/auth/refresh').set('Cookie', oldCookie);
+    assert.equal(first.status, 200);
+
+    // Reusing the now-rotated original cookie must fail (reuse detection).
+    const reuse = await request(app).post('/api/auth/refresh').set('Cookie', oldCookie);
+    assert.equal(reuse.status, 401);
+
+    // And the session is revoked: the rotated cookie is now dead too.
+    const newCookie = first.headers['set-cookie'].find((c) => c.startsWith('refreshToken='));
+    const afterRevoke = await request(app).post('/api/auth/refresh').set('Cookie', newCookie);
+    assert.equal(afterRevoke.status, 401);
+  });
 });
 
 describe('documents', () => {

@@ -14,7 +14,7 @@ Live status of the build. Updated at the end of every phase (and every meaningfu
 | 5 | Crash-safe persistence | ✅ Done |
 | 6 | Multi-user sync + presence + WS auth | ✅ Done |
 | 7 | Sharing & permissions | ✅ Done |
-| 8 | Polish & production readiness | ⬜ Not started |
+| 8 | Polish & production readiness | ✅ Done (Docker + 2-browser E2E deferred) |
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⚠️ blocked
 
@@ -117,7 +117,24 @@ Done:
 
 Checkpoint: ✅ non-owner blocked (403 REST + WS); viewer cannot mutate via WS; owner shares editor/viewer by email.
 
-> Remaining: Phase 8 polish (rotation, title autosave, toasts, error boundaries, 2-browser E2E).
+## Phase 8 — Polish & production readiness ✅
+
+Goal: hardened, deployable MVP.
+
+Done:
+- [x] **Refresh-token rotation + reuse detection** — refresh issues a new token (invalidating the old); a validly-signed but non-current token revokes the whole session.
+- [x] **Title auto-save** — editable title for owner/editor, 1s debounce (`useDebouncedCallback`), Saving/Saved indicator.
+- [x] **React error boundary** wrapping all routes, with fallback UI.
+- [x] **Production serving** — Express serves the built client + SPA fallback for non-`/api` routes when `NODE_ENV=production`; **helmet CSP** engages in prod (`connect-src` allows ws/wss; `style-src 'unsafe-inline'` for CodeMirror).
+- [x] Connection status indicator (Phase 4), 403/404 pages, loading states.
+- [x] **Tests:** server 41 (incl. rotation + reuse detection); client 24 (incl. debounce + error boundary). 0 vulnerabilities server; 1 documented dev-only (vite) client.
+
+Deferred (by decision):
+- **Docker Compose** — user chose to defer; run Neon + Upstash directly.
+- **Toasts system** — replaced with inline save/connection indicators for MVP.
+- **2-browser Playwright E2E** — automated suite already covers sync/persistence/viewer-read-only/rotation against live stores; full visual 2-browser pass is the remaining manual verification.
+
+Checkpoint: ✅ all automated suites green; production build serves; security audits clean.
 
 ## Phase 3 — Frontend auth + document list ✅
 

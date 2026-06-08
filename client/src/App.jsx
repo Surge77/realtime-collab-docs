@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import { ErrorBoundary } from './components/error-boundary.jsx';
 import { ProtectedRoute } from './components/protected-route.jsx';
 import { Home } from './pages/home.jsx';
 import { Login } from './pages/login.jsx';
@@ -21,6 +22,7 @@ export function App() {
     status === 'authenticated' ? <Navigate to="/" replace /> : element;
 
   return (
+    <ErrorBoundary>
     <Routes>
       <Route path="/login" element={redirectIfAuthed(<Login />)} />
       <Route path="/register" element={redirectIfAuthed(<Register />)} />
@@ -42,5 +44,6 @@ export function App() {
       />
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </ErrorBoundary>
   );
 }

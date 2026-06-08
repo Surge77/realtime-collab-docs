@@ -20,7 +20,11 @@ export async function issueTokens(user) {
   return { accessToken, refreshToken };
 }
 
-/** Verify a refresh token's signature AND that its hash is the stored one. */
+/**
+ * Verify a refresh token's signature AND that its hash is the stored one.
+ * Reuse detection: a validly-signed token whose hash is NOT the stored one was
+ * already rotated (or stolen) — revoke the whole session as a precaution.
+ */
 export async function verifyRefresh(refreshToken) {
   let payload;
   try {
@@ -30,6 +34,8 @@ export async function verifyRefresh(refreshToken) {
   }
   const stored = await redis.get(refreshKey(payload.sub));
   if (!stored || stored !== sha256(refreshToken)) {
+    // Signature was valid but this token is not current → possible reuse.
+    await revokeRefresh(payload.sub);
     throw unauthorized('Refresh token revoked or expired');
   }
   return payload;

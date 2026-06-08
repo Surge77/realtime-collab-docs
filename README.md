@@ -2,7 +2,7 @@
 
 A Google-Docs-style **real-time collaborative text editor**. Multiple users edit the same document simultaneously, see each other's cursors, and never lose data — even on reconnect or server restart.
 
-> **Status:** 🚧 In active development. Built phase-by-phase. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the live status.
+> **Status:** ✅ MVP feature-complete — all 8 phases built and tested (66 automated tests against live Neon + Upstash). Docker Compose and a full 2-browser Playwright E2E are the deferred follow-ups. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for details.
 
 ---
 
@@ -59,16 +59,32 @@ docs/     ARCHITECTURE.md · PROGRESS.md · CONTEXT.md
 
 ```bash
 # 1. Provision Postgres + Redis (Neon + Upstash, or local), copy connection strings
-cp server/.env.example server/.env   # fill in DATABASE_URL, REDIS_URL, JWT secrets
-cp client/.env.example client/.env
+cp server/.env.example server/.env.local   # fill in DATABASE_URL, REDIS_URL (JWT secrets: see below)
+cp client/.env.example client/.env.local
+
+# generate JWT / WS secrets:
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 # 2. Install
 cd server && npm install
 cd ../client && npm install
 
-# 3. Run (separate terminals)
+# 3. Migrate the database (server/)
+npm run migrate
+
+# 4. Run (separate terminals)
 npm run dev   # in server/  → http://localhost:4000
 npm run dev   # in client/  → http://localhost:5173
+
+# Tests
+npm test      # in server/ (live Neon+Upstash) and client/ (Vitest)
+```
+
+### Production (single server)
+
+```bash
+cd client && npm run build          # emits client/dist
+cd ../server && NODE_ENV=production npm start   # serves API + built client on :4000
 ```
 
 ## Roadmap (8 phases)

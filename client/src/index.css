@@ -201,6 +201,26 @@ a {
 .back-link {
   text-decoration: none;
 }
+.editor-title-input {
+  flex: 1;
+  max-width: 420px;
+  font: inherit;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  color: var(--text);
+}
+.editor-title-input:hover,
+.editor-title-input:focus {
+  border-color: var(--border);
+  outline: none;
+}
+.save-state {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
 .route-loading,
 .route-error {
   display: grid;

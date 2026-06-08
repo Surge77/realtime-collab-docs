@@ -2,8 +2,7 @@ import { asyncHandler, conflict, unauthorized } from '../utils/errors.js';
 import { loginSchema, parseOrThrow, registerSchema } from '../utils/validation.js';
 import { hashPassword, verifyPassword } from '../services/password.js';
 import { issueTokens, revokeRefresh, verifyRefresh } from '../services/token-service.js';
-import { signAccessToken } from '../utils/jwt.js';
-import { createUser, findByEmail, findByEmailWithHash, findById, findConflict } from '../models/user.js';
+import { createUser, findByEmailWithHash, findById, findConflict } from '../models/user.js';
 
 const REFRESH_COOKIE = 'refreshToken';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -64,7 +63,9 @@ export const refresh = asyncHandler(async (req, res) => {
   const user = await findById(payload.sub);
   if (!user) throw unauthorized('User no longer exists');
 
-  const accessToken = signAccessToken({ sub: user.id, email: user.email, username: user.username });
+  // Rotate: issue a new refresh token (invalidates the presented one) + access.
+  const { accessToken, refreshToken } = await issueTokens(user);
+  setRefreshCookie(res, refreshToken);
   res.json({ accessToken });
 });
 
